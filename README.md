@@ -26,7 +26,10 @@
 > **第3步** 实际上Provider对于Consumer来说是透明的，上一次调用和这一次调用的ip地址是不确定的，这里就需要Registry注册中心进行服务容器Container的负载均衡
 
 
+
 ## 本RPC框架实际调用链路
 
 ![](./pic/rpc-architure-detail.png)
+
+
 
