@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -99,6 +100,7 @@ public final class ExtensionLoader<T> {
             synchronized (cacheClasses) {
                 classes = cacheClasses.get();
                 if (classes == null) {
+                    classes = new HashMap<>();
                     loadDirectory(classes);
                     cacheClasses.set(classes);
                 }
@@ -144,7 +146,7 @@ public final class ExtensionLoader<T> {
                     String clazzName = classMsg.substring(split + 1).trim();
                     // throw ClassNotFound Exception if can't find the className
                     Class<?> clazz = classLoader.loadClass(clazzName);
-                    classes.putIfAbsent(name, clazz);
+                    classes.put(name, clazz);
                 }
             }
         } catch (Exception e) {

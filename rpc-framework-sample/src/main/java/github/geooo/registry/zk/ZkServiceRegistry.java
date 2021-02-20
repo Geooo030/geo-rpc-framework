@@ -13,9 +13,10 @@ import java.net.InetSocketAddress;
 public class ZkServiceRegistry implements ServiceRegistry {
 
     @Override
-    public void registerService(String rpcServiceName, InetSocketAddress inetSocketAddress) {
+    public int registerService(String rpcServiceName, InetSocketAddress inetSocketAddress) {
         log.info("获得Zookeeper服务注册实例（实现ServiceRegistry接口）");
 
+        return 200;
     }
 
 }
