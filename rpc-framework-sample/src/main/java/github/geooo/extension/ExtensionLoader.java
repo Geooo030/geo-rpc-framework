@@ -3,8 +3,15 @@ package github.geooo.extension;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * @author zhaoqi.wang
@@ -74,19 +81,76 @@ public final class ExtensionLoader<T> {
         }
         T instance = (T) EXTENSION_INSTANCES.get(clazz);
         if (instance == null) {
-            // TODO scan all the type's config classes and new a new instance
-
+            // scan all the type's config classes and new a new instance
+            try {
+                EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
+                instance = (T) EXTENSION_INSTANCES.get(clazz);
+            } catch (Exception e) {
+                log.error(e.getMessage());
+            }
         }
         return instance;
     }
 
     private Map<String, Class<?>> getExtensionClasses() {
         Map<String, Class<?>> classes = cacheClasses.get();
-        // Load all the extension class of "type"
+        // Load all the extension class which name equals "type"'s class path
         if (classes == null) {
-
+            synchronized (cacheClasses) {
+                classes = cacheClasses.get();
+                if (classes == null) {
+                    loadDirectory(classes);
+                    cacheClasses.set(classes);
+                }
+            }
         }
         return classes;
+    }
+
+    private void loadDirectory(Map<String, Class<?>> classes) {
+        // file's name = SPI Interface's Class . getName()
+        String fileName = ExtensionLoader.EXTENSION_CONFIG_DIRECTORY +type.getName();
+        try {
+            Enumeration<URL> urls;
+            ClassLoader classLoader = ExtensionLoader.class.getClassLoader();
+            urls = classLoader.getResources(fileName);
+            if (urls != null) {
+                while(urls.hasMoreElements()) {
+                    URL url = urls.nextElement();
+                    loadClass(url, classLoader, classes);
+                }
+            }
+
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void loadClass(URL url, ClassLoader classLoader, Map<String, Class<?>> classes) {
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), UTF_8));
+            String classMsg;
+            // read every line of file
+            while ((classMsg = reader.readLine()) != null) {
+                // ignore the msg which after '#'
+                int index = classMsg.indexOf("#");
+                if (index >= 0) {
+                    classMsg = classMsg.substring(0, index);
+                }
+                classMsg = classMsg.trim();
+                if (!StringUtils.isEmpty(classMsg)) {
+                    final int split = classMsg.indexOf("=");
+                    String name = classMsg.substring(0, split).trim();
+                    String clazzName = classMsg.substring(split + 1).trim();
+                    // throw ClassNotFound Exception if can't find the className
+                    Class<?> clazz = classLoader.loadClass(clazzName);
+                    classes.putIfAbsent(name, clazz);
+                }
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+
     }
 
 
